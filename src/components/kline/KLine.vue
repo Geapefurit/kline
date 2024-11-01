@@ -80,17 +80,14 @@ onMounted(() => {
   const splitData = (rawData: number[][]) => {
     const categoryData = []
     const values = []
-    const volumes = []
     for (let i = 0; i < rawData.length; i++) {
       categoryData.push(rawData[i].splice(0, 1)[0])
       values.push(rawData[i])
-      volumes.push([i, rawData[i][4], rawData[i][0] > rawData[i][1] ? 1 : -1])
     }
 
     return {
       categoryData: categoryData,
-      values: values,
-      volumes: volumes
+      values: values
     }
   }
 
@@ -113,9 +110,9 @@ onMounted(() => {
   axios.get('http://172.16.31.202:9999/stock-DJI.json').then((response) => {
     const data = splitData(response.data as number[][])
     const option: EChartsOption = {
-      animation: false,
+      animation: true,
       legend: {
-        bottom: 10,
+        bottom: 20,
         left: 'center',
         data: ['Dow-Jones index', 'MA5', 'MA10', 'MA20', 'MA30']
       },
@@ -129,15 +126,7 @@ onMounted(() => {
         padding: 10,
         textStyle: {
           color: '#000'
-        },
-        position: (pos: number[], params, el, elRect, size) => {
-          const obj: Record<string, number> = {
-            top: 10
-          }
-          obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 30
-          return obj
         }
-        // extraCssText: 'width: 170px'
       },
       axisPointer: {
         link: [
@@ -185,13 +174,7 @@ onMounted(() => {
         {
           left: '10%',
           right: '8%',
-          height: '50%'
-        },
-        {
-          left: '10%',
-          right: '8%',
-          top: '63%',
-          height: '16%'
+          height: '70%'
         }
       ],
       xAxis: [
@@ -206,18 +189,6 @@ onMounted(() => {
           axisPointer: {
             z: 100
           }
-        },
-        {
-          type: 'category',
-          gridIndex: 1,
-          data: data.categoryData,
-          boundaryGap: false,
-          axisLine: { onZero: false },
-          axisTick: { show: false },
-          splitLine: { show: false },
-          axisLabel: { show: false },
-          min: 'dataMin',
-          max: 'dataMax'
         }
       ],
       yAxis: [
@@ -226,27 +197,18 @@ onMounted(() => {
           splitArea: {
             show: true
           }
-        },
-        {
-          scale: true,
-          gridIndex: 1,
-          splitNumber: 2,
-          axisLabel: { show: false },
-          axisLine: { show: false },
-          axisTick: { show: false },
-          splitLine: { show: false }
         }
       ],
       dataZoom: [
         {
           type: 'inside',
-          xAxisIndex: [0, 1],
+          xAxisIndex: [0],
           start: 98,
           end: 100
         },
         {
           show: true,
-          xAxisIndex: [0, 1],
+          xAxisIndex: [0],
           type: 'slider',
           top: '85%',
           start: 98,
@@ -300,13 +262,6 @@ onMounted(() => {
           lineStyle: {
             opacity: 0.5
           }
-        },
-        {
-          name: 'Volume',
-          type: 'bar',
-          xAxisIndex: 1,
-          yAxisIndex: 1,
-          data: data.volumes
         }
       ]
     }
@@ -315,17 +270,6 @@ onMounted(() => {
       option,
       true
     )
-
-    myChart.dispatchAction({
-      type: 'brush',
-      areas: [
-        {
-          brushType: 'lineX',
-          coordRange: ['2016-06-02', '2016-06-20'],
-          xAxisIndex: 0
-        }
-      ]
-    })
   }
   ).catch(function (error) { // 请求失败处理
     console.log(error)
