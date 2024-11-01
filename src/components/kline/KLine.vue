@@ -73,16 +73,33 @@ type EChartsOption = echarts.ComposeOption<
   | BarSeriesOption
 >
 
+interface KPoint {
+  Nums: number[];
+  Times: number[];
+}
+
+interface KPointsForLine {
+  KPointType: string;
+  KPoints: KPoint[];
+  Limit: number;
+  Offset: number;
+  OriginalTime: number;
+  TokenPairID: number;
+  Total: number;
+}
+
 onMounted(() => {
   const chartDom = document.getElementById('chart-container') as HTMLElement
-  const myChart = echarts.init(chartDom, 'dark')
+  const myChart = echarts.init(chartDom)
 
-  const splitData = (rawData: number[][]) => {
+  const splitData = (info: KPointsForLine) => {
+    const rawDatas = info.KPoints
     const categoryData = []
     const values = []
-    for (let i = 0; i < rawData.length; i++) {
-      categoryData.push(rawData[i].splice(0, 1)[0])
-      values.push(rawData[i])
+
+    for (let i = 0; i < rawDatas.length; i++) {
+      categoryData.push(rawDatas[i].Times[0].toString())
+      values.push(rawDatas[i].Nums)
     }
 
     return {
@@ -107,8 +124,24 @@ onMounted(() => {
     return result
   }
 
-  axios.get('http://172.16.31.202:9999/stock-DJI.json').then((response) => {
-    const data = splitData(response.data as number[][])
+  const calculateZoomStart = (itemsLen: number) => {
+    let result = 90
+    if (itemsLen < 50) {
+      result = 0
+    } else {
+      result = 100 - 50 / itemsLen * 100
+    }
+    return result
+  }
+
+  axios.post('http://172.16.31.48:30100/v1/get/kpoints/for/line', {
+    KPointType: 'FiveSecond',
+    Limit: -100,
+    Offset: 0,
+    OriginalTime: 0,
+    TokenPairID: 1
+  }).then((response) => {
+    const data = splitData(response.data as KPointsForLine)
     const option: EChartsOption = {
       animation: true,
       legend: {
@@ -203,7 +236,7 @@ onMounted(() => {
         {
           type: 'inside',
           xAxisIndex: [0],
-          start: 98,
+          start: calculateZoomStart(data.categoryData.length),
           end: 100
         },
         {
@@ -211,7 +244,7 @@ onMounted(() => {
           xAxisIndex: [0],
           type: 'slider',
           top: '85%',
-          start: 98,
+          start: calculateZoomStart(data.categoryData.length),
           end: 100
         }
       ],
@@ -270,6 +303,19 @@ onMounted(() => {
       option,
       true
     )
+
+    if (data.categoryData.length > 20) {
+      myChart.dispatchAction({
+        type: 'brush',
+        areas: [
+          {
+            brushType: 'lineX',
+            coordRange: [data.categoryData[data.categoryData.length - 20], data.categoryData[data.categoryData.length - 1]],
+            xAxisIndex: 0
+          }
+        ]
+      })
+    }
   }
   ).catch(function (error) { // 请求失败处理
     console.log(error)
